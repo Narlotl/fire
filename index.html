@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/leaflet-sidebar-v2@3.2.3/js/leaflet-sidebar.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-sidebar-v2@3.2.3/css/leaflet-sidebar.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="icon" href="icon.png">
     <title>Fire</title>
     <style>
         body {
@@ -24,102 +25,135 @@
         #unit-select {
             max-width: 100%;
         }
+
+        #loading {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            background-color: white;
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            display: flex;
+        }
+
+        #bar {
+            width: 50%;
+            height: 10%;
+            border: 5px solid black;
+            background-image: linear-gradient(135deg, red, yellow);
+        }
+
+        #bar-fill {
+            height: 100%;
+            width: 100%;
+            float: right;
+            background-color: white;
+        }
     </style>
 </head>
 
 <body>
-    <div id="map"></div>
-    <div id="sidebar" class="leaflet-sidebar">
-        <div class="leaflet-sidebar-tabs">
-            <ul role="tablist">
-                <li class="active"><a href="#filter" role="tab" title="Filter"><i class="bi bi-funnel-fill"></i></a>
-                </li>
-                <li><a href="#settings" role="tab" title="Settings"><i class="bi bi-gear-fill"></i></a></li>
-            </ul>
-
-            <ul role="tablist">
-                <li><a href="#data" role="tab" title="Data"><i class="bi bi-database-fill"></i></a></li>
-            </ul>
+    <div id="map">
+        <div id="loading">
+            <div id="bar">
+                <div id="bar-fill"></div>
+            </div>
         </div>
-        <div class="leaflet-sidebar-content">
-            <div class="leaflet-sidebar-pane active" id="filter">
-                <h1 class="leaflet-sidebar-header">Filter fires<span class="leaflet-sidebar-close"><i
-                            class="bi bi-x"></i></span></h1>
-                <h2>Select unit</h2>
-                <select name="unit" id="unit-select">
-                    <option value="all">All</option>
-                </select>
-                <h2>Select causes</h2>
-                <form id="causes">
-                    <div>
-                        <input type="checkbox" name="lightning">
-                        <label for="lightning">Lightning</label><br>
-                        <input type="checkbox" name="equipment">
-                        <label for="equipment">Equipment</label><br>
-                        <input type="checkbox" name="smoking">
-                        <label for="smoking">Smoking</label><br>
-                        <input type="checkbox" name="campfire">
-                        <label for="campfire">Campfire</label><br>
-                        <input type="checkbox" name="debris">
-                        <label for="debris">Debris</label><br>
-                        <input type="checkbox" name="railroad">
-                        <label for="railroad">Railroad</label><br>
-                        <input type="checkbox" name="arson">
-                        <label for="arson">Arson</label><br>
-                        <input type="checkbox" name="playing">
-                        <label for="playing">Playing with fire</label><br>
-                        <input type="checkbox" name="misc">
-                        <label for="misc">Miscellaneous</label><br>
-                        <input type="checkbox" name="vehicle">
-                        <label for="vehicle">Vehicle</label><br>
-                        <input type="checkbox" name="powerline">
-                        <label for="powerline">Powerline</label><br>
-                        <input type="checkbox" name="firefighter-training">
-                        <label for="firefighter-training">Firefighter training</label><br>
-                        <input type="checkbox" name="non-firefighter-training">
-                        <label for="non-firefighter-training">Non-firefighter training</label><br>
-                        <input type="checkbox" name="unknown">
-                        <label for="unknown">Unknown</label><br>
-                        <input type="checkbox" name="structure">
-                        <label for="structure">Structure</label><br>
-                        <input type="checkbox" name="aircraft">
-                        <label for="aircraft">Aircraft</label><br>
-                        <input type="checkbox" name="volcanic">
-                        <label for="volcanic">Volcanic</label><br>
-                        <input type="checkbox" name="escaped">
-                        <label for="escaped">Escaped prescribed burn</label>
-                    </div>
-                </form>
+        <div id="sidebar" class="leaflet-sidebar">
+            <div class="leaflet-sidebar-tabs">
+                <ul role="tablist">
+                    <li class="active"><a href="#filter" role="tab" title="Filter"><i class="bi bi-funnel-fill"></i></a>
+                    </li>
+                    <li><a href="#settings" role="tab" title="Settings"><i class="bi bi-gear-fill"></i></a></li>
+                </ul>
+
+                <ul role="tablist">
+                    <li><a href="#data" role="tab" title="Data"><i class="bi bi-info-circle-fill"></i></a></li>
+                </ul>
             </div>
-            <div class="leaflet-sidebar-pane" id="settings">
-                <h1 class="leaflet-sidebar-header">Settings<span class="leaflet-sidebar-close"><i
-                            class="bi bi-x"></i></span></h1>
-                <form name="settings" id="settings">
-                    <h2>Units</h2>
-                    <input type="radio" name="settings" id="acres" value="acres" checked>
-                    <label for="acres">Acres</label><br>
-                    <input type="radio" name="settings" id="miles" value="square miles">
-                    <label for="miles">Square miles</label><br>
-                    <input type="radio" name="settings" id="km" value="square kilometers">
-                    <label for="km">Square kilometers</label>
-                    <h2>Colors</h2>
-                    <input type="color" name="largest" id="largest" value="#ff0000">
-                    <label for="largest">Largest fire</label><br>
-                    <input type="color" name="smallest" id="smallest" value="#ffff00">
-                    <label for="smallest">Smallest fire</label>
-                    <p><input type="submit" value="Update settings"></p>
-                </form>
-            </div>
-            <div class="leaflet-sidebar-pane" id="data">
-                <h1 class="leaflet-sidebar-header">Data<span class="leaflet-sidebar-close"><i
-                            class="bi bi-x"></i></span></h1>
-                <p>Fire data comes from <a
-                        href="https://calfire-forestry.maps.arcgis.com/home/item.html?id=e3802d2abf8741a187e73a9db49d68fe&view=list&sortOrder=desc&sortField=defaultFSOrder&showFilters=false#overview"
-                        target="_blank">CalFire</a>.</p>
-                <p>The source code for this project is on <a href="https://github.com/Narlotl/fire"
-                        target="_blank">GitHub</a>.</p>
-                <p>Thanks to Benjamin Rogers and the CalFire digital
-                    team for helping make the data available.</p>
+            <div class="leaflet-sidebar-content">
+                <div class="leaflet-sidebar-pane active" id="filter">
+                    <h1 class="leaflet-sidebar-header">Filter fires<span class="leaflet-sidebar-close"><i
+                                class="bi bi-x"></i></span></h1>
+                    <h2>Response unit</h2>
+                    <select name="unit" id="unit-select">
+                        <option value="all">All</option>
+                    </select>
+                    <h2>Causes</h2>
+                    <form id="causes">
+                        <div>
+                            <input type="checkbox" name="lightning">
+                            <label for="lightning">Lightning</label><br>
+                            <input type="checkbox" name="equipment">
+                            <label for="equipment">Equipment</label><br>
+                            <input type="checkbox" name="smoking">
+                            <label for="smoking">Smoking</label><br>
+                            <input type="checkbox" name="campfire">
+                            <label for="campfire">Campfire</label><br>
+                            <input type="checkbox" name="debris">
+                            <label for="debris">Debris</label><br>
+                            <input type="checkbox" name="railroad">
+                            <label for="railroad">Railroad</label><br>
+                            <input type="checkbox" name="arson">
+                            <label for="arson">Arson</label><br>
+                            <input type="checkbox" name="playing">
+                            <label for="playing">Playing with fire</label><br>
+                            <input type="checkbox" name="misc">
+                            <label for="misc">Miscellaneous</label><br>
+                            <input type="checkbox" name="vehicle">
+                            <label for="vehicle">Vehicle</label><br>
+                            <input type="checkbox" name="powerline">
+                            <label for="powerline">Powerline</label><br>
+                            <input type="checkbox" name="firefighter-training">
+                            <label for="firefighter-training">Firefighter training</label><br>
+                            <input type="checkbox" name="non-firefighter-training">
+                            <label for="non-firefighter-training">Non-firefighter training</label><br>
+                            <input type="checkbox" name="unknown">
+                            <label for="unknown">Unknown</label><br>
+                            <input type="checkbox" name="structure">
+                            <label for="structure">Structure</label><br>
+                            <input type="checkbox" name="aircraft">
+                            <label for="aircraft">Aircraft</label><br>
+                            <input type="checkbox" name="volcanic">
+                            <label for="volcanic">Volcanic</label><br>
+                            <input type="checkbox" name="escaped">
+                            <label for="escaped">Escaped prescribed burn</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="leaflet-sidebar-pane" id="settings">
+                    <h1 class="leaflet-sidebar-header">Settings<span class="leaflet-sidebar-close"><i
+                                class="bi bi-x"></i></span></h1>
+                    <form name="settings" id="settings">
+                        <h2>Units</h2>
+                        <input type="radio" name="settings" id="acres" value="acres" checked>
+                        <label for="acres">Acres</label><br>
+                        <input type="radio" name="settings" id="miles" value="square miles">
+                        <label for="miles">Square miles</label><br>
+                        <input type="radio" name="settings" id="km" value="square kilometers">
+                        <label for="km">Square kilometers</label>
+                        <h2>Colors</h2>
+                        <input type="color" name="largest" id="largest" value="#ff0000">
+                        <label for="largest">Largest fire</label><br>
+                        <input type="color" name="smallest" id="smallest" value="#ffff00">
+                        <label for="smallest">Smallest fire</label>
+                        <p><input type="submit" value="Update settings"></p>
+                    </form>
+                </div>
+                <div class="leaflet-sidebar-pane" id="data">
+                    <h1 class="leaflet-sidebar-header">Data<span class="leaflet-sidebar-close"><i
+                                class="bi bi-x"></i></span></h1>
+                    <p>Fire data comes from <a
+                            href="https://calfire-forestry.maps.arcgis.com/home/item.html?id=e3802d2abf8741a187e73a9db49d68fe&view=list&sortOrder=desc&sortField=defaultFSOrder&showFilters=false#overview"
+                            target="_blank">CalFire</a>.</p>
+                    <p>The source code for this project is on <a href="https://github.com/Narlotl/fire"
+                            target="_blank">GitHub</a>.</p>
+                    <p>Thanks to Benjamin Rogers and the CalFire digital
+                        team for helping make the data available.</p>
+                    <a href="https://www.flaticon.com/free-icons/fire" target="_blank" title="fire icons">Fire icon
+                        created by Vectors Market - Flaticon</a>
+                </div>
             </div>
         </div>
     </div>

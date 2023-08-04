@@ -46,6 +46,8 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 17,
     attribution: '© <a href="http://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
 }).addTo(map);
+const bottomCorners = document.getElementsByClassName('leaflet-bottom');
+[bottomCorners[0].innerHTML, bottomCorners[1].innerHTML] = [bottomCorners[1].innerHTML, bottomCorners[0].innerHTML];
 
 let largestColor = { r: 255, g: 0, b: 0 }, smallestColor = { r: 255, g: 255, b: 0 };
 let fireLayer;
@@ -92,7 +94,8 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                 urls[urls.length - 1] += '&resultRecordCount=' + i;
                                 break;
                             }
-                        Promise.all(urls.map(async url => fetch(url).then(res => res.json()))).then(data => {
+                        const loadingBar = document.getElementById('bar-fill');
+                        Promise.all(urls.map(async url => fetch(url).then(res => { loadingBar.style.width = parseFloat(loadingBar.style.width || '100%') - 100 / urls.length + '%'; return res.json(); }))).then(data => {
                             for (const datum of data)
                                 for (const fire of datum.features)
                                     if (fire.properties.FIRE_NAME && fire.properties.GIS_ACRES && fire.properties.YEAR_ && fire.properties.YEAR_ >= yearLimit) {
@@ -174,6 +177,7 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                             map.on('zoomend', showFires);
                             unitSelect.onchange = () => showFires(true);
                             showFires();
+                            document.getElementById('loading').style.display = 'none';
                         });
                     }
                 });
