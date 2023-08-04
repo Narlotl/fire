@@ -34,7 +34,6 @@ const getDistance = (point1, point2) => {
     return dist;
 };
 
-
 const map = L.map('map').setView([37.16611, -119.44944], 6);
 const sidebar = L.control.sidebar({
     autopan: true,
@@ -50,10 +49,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 let largestColor = { r: 255, g: 0, b: 0 }, smallestColor = { r: 255, g: 255, b: 0 };
 let fireLayer;
-const yearLimit =
-    2022
-// new Date().getFullYear() - 25;
-//2015
+let yearLimit = new Date().getFullYear() - 25;
 let fires = [];
 const firesByYear = new Map();
 for (let i = yearLimit; i < new Date().getFullYear(); i++)
@@ -132,12 +128,6 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                 if (largestFire != fires[0])
                                     largestFire.polygon.setPopupContent(largestFire.polygon.getPopup().getContent().replace('UNITS', 'UNITS, making it the biggest fire in of ' + year[0]));
                             }
-                            /*  for (let i = 0; i < fires.length; i++) {
-                                  if (i == 0)
-                                      fires[i].polygon.setPopupContent(fires[i].polygon.getPopup().getContent().replace('UNITS', 'UNITS, making it the biggest fire in California history'));
-                                  const color = 'rgb(255, ' + 255 * i / (fires.length - 1) + ', 0)';
-                                  fires[i].polygon.setStyle({ color, fillColor: color, opacity: 1 });
-                              }*/
 
                             let tolerance = 0;
                             const causeChecks = document.querySelectorAll('#causes input');
@@ -189,60 +179,5 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                 });
             };
             getFires(0);
-            /*
-                fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Fire_Perimeters/FeatureServer/0/query?f=geojson&where=1%3D1&orderByFields=YEAR_ DESC&outFields=FIRE_NAME,GIS_ACRES,YEAR_,CAUSE,ALARM_DATE,CONT_DATE,UNIT_ID&resultOffset=' + offset).then(res => res.json()).then(perimeters => {
-                    for (const fire of perimeters.features)
-                        if (fire.properties.FIRE_NAME && fire.properties.GIS_ACRES && fire.properties.YEAR_ && fire.properties.YEAR_ >= yearLimit) {
-                            for (let polygon of fire.geometry.coordinates) {
-                                if (fire.geometry.type == 'MultiPolygon')
-                                    polygon = polygon[0];
-                                for (const point of polygon)
-                                    [point[0], point[1]] = [point[1], point[0]];
-                            }
-                            const name = fire.properties.FIRE_NAME.toLowerCase().replaceAll('_', ' ').replaceAll(/( [a-z])|^([a-z])/g, letter => letter.toUpperCase()) + ' Fire';
-                            const fireObject = {
-                                polygon: (L.polygon(fire.geometry.coordinates)).bindPopup(`
-                            <p><h2>${name} (${fire.properties.YEAR_})</h2></p>
-                            <p>
-                                The ${name} was started on ${new Date(fire.properties.ALARM_DATE).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} because of ${causes[fire.properties.CAUSE]}. 
-                                It burned ${Math.round(fire.properties.GIS_ACRES).toLocaleString()} acres. 
-                                It was handled by ${units.get(fire.properties.UNIT_ID)}, who contained it after ${Math.round((new Date(fire.properties.CONT_DATE) - new Date(fire.properties.ALARM_DATE)) / 1000 / 60 / 60 / 24)} days.
-                            </p>
-                        `), properties: fire.properties
-                            };
-                            fires.push(fireObject);
-                            firesByYear.get(fire.properties.YEAR_).push(fireObject);
-                        }
-
-
-                    if (perimeters.properties && perimeters.properties.exceededTransferLimit && perimeters.features[perimeters.features.length - 1].properties.YEAR_ >= yearLimit)
-                        getFires(callback, offset + perimeters.features.length);
-                    else {
-                        fires = fires.sort((a, b) => b.properties.GIS_ACRES - a.properties.GIS_ACRES);
-                        for (const year of firesByYear.entries()) {
-                            let largestSize = 0, largestFire;
-                            for (const fire of year[1])
-                                if (fire.properties.GIS_ACRES > largestSize) {
-                                    largestSize = fire.properties.GIS_ACRES;
-                                    largestFire = fire;
-                                }
-                            if (largestFire != fires[0])
-                                largestFire.polygon.setPopupContent(largestFire.polygon.getPopup().getContent().replace('acres', 'acres, making it the biggest fire in of ' + year[0]));
-                        }
-                        for (let i = 0; i < fires.length; i++) {
-                            if (i == 0)
-                                fires[i].polygon.setPopupContent(fires[i].polygon.getPopup().getContent().replace('acres', 'acres, making it the biggest fire in California history'));
-                            const color = 'rgb(255, ' + 255 * i / (fires.length - 1) + ', 0)';
-                            fires[i].polygon.setStyle({ color, fillColor: color, opacity: 1 });
-                        }
-                        callback();
-                    }
-                });
-
-            getFires(() => {
-                
-            }, 0);
-            break;*/
         }
 });
-// TODO: filter by year, cause
