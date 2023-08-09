@@ -51,7 +51,7 @@ const bottomCorners = document.getElementsByClassName('leaflet-bottom');
 
 let largestColor = { r: 255, g: 0, b: 0 }, smallestColor = { r: 255, g: 255, b: 0 };
 let fireLayer;
-let yearLimit = new Date().getFullYear() - 25;
+let yearLimit = 2022// new Date().getFullYear() - 25;
 let fires = [];
 const firesByYear = new Map();
 for (let i = yearLimit; i < new Date().getFullYear(); i++)
@@ -83,17 +83,11 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
             const units = new Map(field.domain.codedValues.map(v => { unitSelect.innerHTML += `<option value="${v.code}">${v.name}</option>`; return [v.code, v.name.replace(' - ', '-')]; }));
             const urls = [];
             const getFires = (offset) => {
-                fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Fire_Perimeters/FeatureServer/0/query?f=geojson&where=1%3D1&orderByFields=YEAR_ DESC&outFields=YEAR_&returnGeometry=false&resultOffset=' + offset).then(res => res.json()).then(fireYears => {
-                    fireYears = fireYears.features;
-                    urls.push('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Fire_Perimeters/FeatureServer/0/query?f=geojson&where=1%3D1&orderByFields=YEAR_ DESC&outFields=ALARM_DATE,CAUSE,CONT_DATE,FIRE_NAME,GIS_ACRES,UNIT_ID,YEAR_&resultOffset=' + offset);
-                    if (fireYears[fireYears.length - 1].properties.YEAR_ >= yearLimit)
+                fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Fire_Perimeters/FeatureServer/0/query?f=geojson&where=YEAR_ >= ' + yearLimit + '&orderByFields=YEAR_ DESC&returnIdsOnly=true&returnGeometry=false&resultOffset=' + offset).then(res => res.json()).then(fireYears => {
+                    urls.push('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Fire_Perimeters/FeatureServer/0/query?f=geojson&where=YEAR_ >= ' + yearLimit + '&orderByFields=YEAR_ DESC&outFields=ALARM_DATE,CAUSE,CONT_DATE,FIRE_NAME,GIS_ACRES,UNIT_ID,YEAR_&resultOffset=' + offset);
+                    if (fireYears.properties && fireYears.properties.exceededTransferLimit)
                         getFires(offset + fireYears.length);
                     else {
-                        for (let i = fireYears.length - 1; i >= 0; i--)
-                            if (fireYears[i].properties.YEAR_ >= yearLimit) {
-                                urls[urls.length - 1] += '&resultRecordCount=' + i;
-                                break;
-                            }
                         Promise.all(urls.map(async url => fetch(url).then(res => res.json()))).then(data => {
                             for (const datum of data)
                                 for (const fire of datum.features)
