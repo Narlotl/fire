@@ -94,8 +94,7 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                 urls[urls.length - 1] += '&resultRecordCount=' + i;
                                 break;
                             }
-                        const loadingBar = document.getElementById('bar-fill');
-                        Promise.all(urls.map(async url => fetch(url).then(res => { loadingBar.style.width = parseFloat(loadingBar.style.width || '100%') - 100 / urls.length + '%'; return res.json(); }))).then(data => {
+                        Promise.all(urls.map(async url => fetch(url).then(res => res.json()))).then(data => {
                             for (const datum of data)
                                 for (const fire of datum.features)
                                     if (fire.properties.FIRE_NAME && fire.properties.GIS_ACRES && fire.properties.YEAR_ && fire.properties.YEAR_ >= yearLimit) {
@@ -106,13 +105,15 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                                 [point[0], point[1]] = [point[1], point[0]];
                                         }
                                         const name = fire.properties.FIRE_NAME.toLowerCase().replaceAll('_', ' ').replaceAll(/( [a-z])|^([a-z])/g, letter => letter.toUpperCase()) + ' Fire';
+                                        let days;
+                                        if (fire.properties.CONT_DATE)
+                                            days = Math.floor((new Date(fire.properties.CONT_DATE) - new Date(fire.properties.ALARM_DATE)) / 1000 / 60 / 60 / 24 + 1);
                                         const fireObject = {
                                             polygon: (L.polygon(fire.geometry.coordinates)).bindPopup(`
                                                 <p><h2>${name} (${fire.properties.YEAR_})</h2></p>
                                                 <p>
-                                                    The ${name} was started on ${new Date(fire.properties.ALARM_DATE).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} because of ${causes[fire.properties.CAUSE]}. 
-                                                    It burned UNITS. 
-                                                    It was contained by ${units.get(fire.properties.UNIT_ID)}${fire.properties.CONT_DATE ? ' after ' + Math.round((new Date(fire.properties.CONT_DATE) - new Date(fire.properties.ALARM_DATE)) / 1000 / 60 / 60 / 24) + ' days' : ''}.
+                                                    The ${name} was started on ${new Date(fire.properties.ALARM_DATE).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} because of ${causes[fire.properties.CAUSE - 1]}. 
+                                                    It burned UNITS before being contained by ${units.get(fire.properties.UNIT_ID)}${days ? ' after ' + days + ' day' + (days > 1 ? 's' : '') : ''}.
                                                 </p>
                                             `), properties: fire.properties
                                         };
@@ -146,6 +147,7 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                 showFires(true);
                                 return false;
                             };
+                            const fireCount = document.getElementById('fire-count');
                             const showFires = (reload = false) => {
                                 const simplifiedFires = [];
                                 const zoom = map.getZoom();
@@ -159,11 +161,11 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
 
                                 if (tolerance != newTolerance || reload == true) {
                                     tolerance = newTolerance;
-
                                     for (const fire of fires)
-                                        if ((unitSelect.value == 'all' || fire.properties.UNIT_ID == unitSelect.value) && (allCauses || causeChecks[fire.properties.CAUSE - 1].checked))
+                                        if ((unitSelect.value == 'all' || fire.properties.UNIT_ID == unitSelect.value) && (allCauses || causeChecks[fire.properties.CAUSE - 1].checked)) {
                                             for (latlng of fire.polygon.getLatLngs())
                                                 simplifiedFires.push(L.polygon(simplifyPolygon(latlng, tolerance)).bindPopup(fire.polygon.getPopup().getContent().replace('UNITS', (Math.round(fire.properties.GIS_ACRES * unitMultiplier * 100) / 100).toLocaleString() + ' ' + unitName)).setStyle(fire.polygon.options));
+                                        }
                                     for (let i = 0; i < simplifiedFires.length; i++) {
                                         const color = `rgb(${(largestColor.r - smallestColor.r) * (simplifiedFires.length - 1 - i) / (simplifiedFires.length - 1) + smallestColor.r}, ${(largestColor.g - smallestColor.g) * (simplifiedFires.length - 1 - i) / (simplifiedFires.length - 1) + smallestColor.g}, ${(largestColor.b - smallestColor.b) * (simplifiedFires.length - 1 - i) / (simplifiedFires.length - 1) + smallestColor.b})`;
                                         simplifiedFires[i].setStyle({ color, fillColor: color, opacity: 1 });
@@ -172,12 +174,16 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                     if (fireLayer)
                                         map.removeLayer(fireLayer);
                                     fireLayer = L.layerGroup(simplifiedFires).addTo(map);
+                                    fireCount.innerHTML = '(' + simplifiedFires.length.toLocaleString() + ')';
                                 }
                             };
                             map.on('zoomend', showFires);
                             unitSelect.onchange = () => showFires(true);
                             showFires();
-                            document.getElementById('loading').style.display = 'none';
+                            document.getElementById('loading').style.opacity = '0';
+                            setTimeout(() => {
+                                document.getElementById('loading').style.display = 'none';
+                            }, 1500);
                         });
                     }
                 });

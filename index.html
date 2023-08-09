@@ -35,20 +35,41 @@
             justify-content: center;
             align-items: center;
             display: flex;
+            cursor: default;
+            transition: 1.5s opacity;
         }
 
-        #bar {
-            width: 50%;
-            height: 10%;
-            border: 5px solid black;
-            background-image: linear-gradient(135deg, red, yellow);
+        .loading-img {
+            position: absolute;
+            height: 75%;
         }
 
-        #bar-fill {
-            height: 100%;
-            width: 100%;
-            float: right;
-            background-color: white;
+        .loading-img:first-child {
+            z-index: -1;
+            animation: loading 1.5s linear infinite;
+        }
+
+        @keyframes loading {
+            0% {
+                filter: blur(20px);
+                height: 75%;
+            }
+
+            50% {
+                filter: blur(80px);
+                height: calc(100% - 80px);
+            }
+
+            100% {
+                filter: blur(20px);
+                height: 75%;
+            }
+        }
+
+        input,
+        select,
+        label {
+            cursor: pointer;
         }
     </style>
 </head>
@@ -56,15 +77,17 @@
 <body>
     <div id="map">
         <div id="loading">
-            <div id="bar">
-                <div id="bar-fill"></div>
-            </div>
+            <!-- <div id="loading-fill"></div>
+            <div id="loading-bar"></div>
+            <img src="icon_outline1.svg" alt="Loading">
+            <h1><span id="loading-step">Loading fire data</span>...</h1>-->
+            <img src="icon.png" alt="Loading" class="loading-img">
+            <img src="icon.png" alt="Loading" class="loading-img" title="Loading...">
         </div>
-        <div id="sidebar" class="leaflet-sidebar">
+        <div id="sidebar" class="leaflet-sidebar collapsed">
             <div class="leaflet-sidebar-tabs">
                 <ul role="tablist">
-                    <li class="active"><a href="#filter" role="tab" title="Filter"><i class="bi bi-funnel-fill"></i></a>
-                    </li>
+                    <li><a href="#filter" role="tab" title="Filter"><i class="bi bi-funnel-fill"></i></a></li>
                     <li><a href="#settings" role="tab" title="Settings"><i class="bi bi-gear-fill"></i></a></li>
                 </ul>
 
@@ -74,8 +97,8 @@
             </div>
             <div class="leaflet-sidebar-content">
                 <div class="leaflet-sidebar-pane active" id="filter">
-                    <h1 class="leaflet-sidebar-header">Filter fires<span class="leaflet-sidebar-close"><i
-                                class="bi bi-x"></i></span></h1>
+                    <h1 class="leaflet-sidebar-header">Filter fires <span id="fire-count"></span><span
+                            class="leaflet-sidebar-close"><i class="bi bi-x"></i></span></h1>
                     <h2>Response unit</h2>
                     <select name="unit" id="unit-select">
                         <option value="all">All</option>
