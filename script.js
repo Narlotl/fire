@@ -51,7 +51,7 @@ const bottomCorners = document.getElementsByClassName('leaflet-bottom');
 
 let largestColor = { r: 255, g: 0, b: 0 }, smallestColor = { r: 255, g: 255, b: 0 };
 let fireLayer;
-let yearLimit = 2022// new Date().getFullYear() - 25;
+let yearLimit = new Date().getFullYear() - 25;
 let fires = [];
 const firesByYear = new Map();
 for (let i = yearLimit; i < new Date().getFullYear(); i++)
@@ -83,15 +83,15 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
             const units = new Map(field.domain.codedValues.map(v => { unitSelect.innerHTML += `<option value="${v.code}">${v.name}</option>`; return [v.code, v.name.replace(' - ', '-')]; }));
             const urls = [];
             const getFires = (offset) => {
-                fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Fire_Perimeters/FeatureServer/0/query?f=geojson&where=YEAR_ >= ' + yearLimit + '&orderByFields=YEAR_ DESC&returnIdsOnly=true&returnGeometry=false&resultOffset=' + offset).then(res => res.json()).then(fireYears => {
+                fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Fire_Perimeters/FeatureServer/0/query?f=geojson&where=YEAR_ >= ' + yearLimit + '&orderByFields=YEAR_ DESC&outFields=CAUSE&returnGeometry=false&resultOffset=' + offset).then(res => res.json()).then(fireYears => {
                     urls.push('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/California_Fire_Perimeters/FeatureServer/0/query?f=geojson&where=YEAR_ >= ' + yearLimit + '&orderByFields=YEAR_ DESC&outFields=ALARM_DATE,CAUSE,CONT_DATE,FIRE_NAME,GIS_ACRES,UNIT_ID,YEAR_&resultOffset=' + offset);
                     if (fireYears.properties && fireYears.properties.exceededTransferLimit)
-                        getFires(offset + fireYears.length);
+                        getFires(offset + fireYears.features.length);
                     else {
                         Promise.all(urls.map(async url => fetch(url).then(res => res.json()))).then(data => {
                             for (const datum of data)
                                 for (const fire of datum.features)
-                                    if (fire.properties.FIRE_NAME && fire.properties.GIS_ACRES && fire.properties.YEAR_ && fire.properties.YEAR_ >= yearLimit) {
+                                    if (fire.properties.FIRE_NAME && fire.properties.GIS_ACRES && fire.properties.YEAR_) {
                                         for (let polygon of fire.geometry.coordinates) {
                                             if (fire.geometry.type == 'MultiPolygon')
                                                 polygon = polygon[0];
@@ -102,12 +102,18 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                         let days;
                                         if (fire.properties.CONT_DATE)
                                             days = Math.floor((new Date(fire.properties.CONT_DATE) - new Date(fire.properties.ALARM_DATE)) / 1000 / 60 / 60 / 24 + 1);
+                                        if (!fire.properties.CAUSE)
+                                            fire.properties.CAUSE = 14;
+                                        else if (fire.properties.CAUSE == 19)
+                                            fire.properties.CAUSE = 4;
+                                        fire.properties.CAUSE--;
                                         const fireObject = {
                                             polygon: (L.polygon(fire.geometry.coordinates)).bindPopup(`
                                                 <p><h2>${name} (${fire.properties.YEAR_})</h2></p>
                                                 <p>
-                                                    The ${name} was started on ${new Date(fire.properties.ALARM_DATE).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} because of ${causes[fire.properties.CAUSE - 1]}. 
-                                                    It burned UNITS before being contained by ${units.get(fire.properties.UNIT_ID)}${days ? ' after ' + days + ' day' + (days > 1 ? 's' : '') : ''}.
+                                                    The ${name} started on ${new Date(fire.properties.ALARM_DATE).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} because of ${causes[fire.properties.CAUSE]}. 
+                                                    It burned UNITS.
+                                                    The fire was contained by ${units.get(fire.properties.UNIT_ID)}${days ? ' after ' + days + ' day' + (days > 1 ? 's' : '') : ''}.
                                                 </p>
                                             `), properties: fire.properties
                                         };
@@ -116,16 +122,17 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                     }
 
                             fires = fires.sort((a, b) => b.properties.GIS_ACRES - a.properties.GIS_ACRES);
-                            for (const year of firesByYear.entries()) {
-                                let largestSize = 0, largestFire;
-                                for (const fire of year[1])
-                                    if (fire.properties.GIS_ACRES > largestSize) {
-                                        largestSize = fire.properties.GIS_ACRES;
-                                        largestFire = fire;
-                                    }
-                                if (largestFire != fires[0])
-                                    largestFire.polygon.setPopupContent(largestFire.polygon.getPopup().getContent().replace('UNITS', 'UNITS, making it the biggest fire in of ' + year[0]));
-                            }
+                            for (const year of firesByYear.entries())
+                                if (year[1] != fires[0].properties.YEAR_) {
+                                    let largestSize = 0, largestFire;
+                                    for (const fire of year[1])
+                                        if (fire.properties.GIS_ACRES > largestSize) {
+                                            largestSize = fire.properties.GIS_ACRES;
+                                            largestFire = fire;
+                                        }
+                                    largestFire.polygon.setPopupContent(largestFire.polygon.getPopup().getContent().replace('UNITS', 'UNITS, making it the biggest fire of ' + year[0]));
+                                }
+                            fires[0].polygon.setPopupContent(fires[0].polygon.getPopup().getContent().replace('UNITS', 'UNITS, making it the biggest fire in California history'));
 
                             let tolerance = 0;
                             const causeChecks = document.querySelectorAll('#causes input');
@@ -156,7 +163,7 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                 if (tolerance != newTolerance || reload == true) {
                                     tolerance = newTolerance;
                                     for (const fire of fires)
-                                        if ((unitSelect.value == 'all' || fire.properties.UNIT_ID == unitSelect.value) && (allCauses || causeChecks[fire.properties.CAUSE - 1].checked)) {
+                                        if ((unitSelect.value == 'all' || fire.properties.UNIT_ID == unitSelect.value) && (allCauses || causeChecks[fire.properties.CAUSE].checked)) {
                                             for (latlng of fire.polygon.getLatLngs())
                                                 simplifiedFires.push(L.polygon(simplifyPolygon(latlng, tolerance)).bindPopup(fire.polygon.getPopup().getContent().replace('UNITS', (Math.round(fire.properties.GIS_ACRES * unitMultiplier * 100) / 100).toLocaleString() + ' ' + unitName)).setStyle(fire.polygon.options));
                                         }
