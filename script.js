@@ -122,7 +122,10 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                     }
 
                             fires = fires.sort((a, b) => b.properties.GIS_ACRES - a.properties.GIS_ACRES);
-                            for (const year of firesByYear.entries())
+                            const yearSelect = document.getElementById('year-select');
+                            const years = [...firesByYear.entries()].reverse();
+                            for (const year of years) {
+                                yearSelect.innerHTML += `<option value="${year[0]}">${year[0]}</option>`;
                                 if (year[1] != fires[0].properties.YEAR_) {
                                     let largestSize = 0, largestFire;
                                     for (const fire of year[1])
@@ -132,6 +135,7 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                         }
                                     largestFire.polygon.setPopupContent(largestFire.polygon.getPopup().getContent().replace('UNITS', 'UNITS, making it the biggest fire of ' + year[0]));
                                 }
+                            }
                             fires[0].polygon.setPopupContent(fires[0].polygon.getPopup().getContent().replace('UNITS', 'UNITS, making it the biggest fire in California history'));
 
                             let tolerance = 0;
@@ -163,7 +167,7 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                 if (tolerance != newTolerance || reload == true) {
                                     tolerance = newTolerance;
                                     for (const fire of fires)
-                                        if ((unitSelect.value == 'all' || fire.properties.UNIT_ID == unitSelect.value) && (allCauses || causeChecks[fire.properties.CAUSE].checked)) {
+                                        if ((yearSelect.value == 'all' || fire.properties.YEAR_ == yearSelect.value) && (unitSelect.value == 'all' || fire.properties.UNIT_ID == unitSelect.value) && (allCauses || causeChecks[fire.properties.CAUSE].checked)) {
                                             for (latlng of fire.polygon.getLatLngs())
                                                 simplifiedFires.push(L.polygon(simplifyPolygon(latlng, tolerance)).bindPopup(fire.polygon.getPopup().getContent().replace('UNITS', (Math.round(fire.properties.GIS_ACRES * unitMultiplier * 100) / 100).toLocaleString() + ' ' + unitName)).setStyle(fire.polygon.options));
                                         }
@@ -179,6 +183,7 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
                                 }
                             };
                             map.on('zoomend', showFires);
+                            yearSelect.onchange = () => showFires(true);
                             unitSelect.onchange = () => showFires(true);
                             showFires();
                             document.getElementById('loading').style.opacity = '0';
@@ -192,3 +197,9 @@ fetch('https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/ArcGIS/rest/services/Califo
             getFires(0);
         }
 });
+
+const sidebarContent = document.querySelector('.leaflet-sidebar-content'), scrollContents = document.getElementsByClassName('scroll-content');
+new ResizeObserver(() => {
+    for (const scrollContent of scrollContents)
+        scrollContent.style.height = sidebarContent.clientHeight - 40 + 'px';
+}).observe(sidebarContent);
